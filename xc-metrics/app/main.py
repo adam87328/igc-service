@@ -1,53 +1,73 @@
 #!/usr/bin/env python
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.responses import JSONResponse
 import sys
-
-sys.path.append('./submodules/igc_lib')
-import igc_lib
-import geopandas as gpd
-import matplotlib.pyplot as plt
-import webbrowser
 import os
-from shapely.geometry import LineString
-import numpy as np
+import tempfile
+import json
 
-class igcLibCfg(igc_lib.FlightParsingConfig):
-    min_time_for_bearing_change = 2.0
+sys.path.append(os.path.join(os.path.dirname(__file__), 'submodules/igc_lib'))
+from submodules.igc_lib import igc_lib
 
-flight = igc_lib.Flight.create_from_file('./data/izoard1.igc',igcLibCfg)
+app = FastAPI()
 
-# Convert the array of coordinates to a LineString
-line = []
-for thermal in flight.thermals:
-    line.append( LineString(np.array([[fix.lon, fix.lat] for fix in thermal.fixes])) )
+# Define the main route to accept the .igc file
+@app.post("/process")
+async def convert_igc(file: UploadFile = File(...)):
+    # Ensure the uploaded file is a .igc file
+    if not file.filename.endswith(".igc"):
+        raise HTTPException(
+            status_code=400, 
+            detail="File format not supported. Please upload a .igc file.")
 
-# Create a GeoDataFrame with the LineString geometry
-gdf_thermals = gpd.GeoDataFrame({
-    'geometry': line, 
-    'direction': [thermal.direction for thermal in flight.thermals],
-    'alt_change': [thermal.alt_change() for thermal in flight.thermals],
-    'vertical_velocity': [thermal.vertical_velocity() for thermal in flight.thermals],
-    })
-gdf_thermals.set_crs(epsg=4326, inplace=True)
+    try:
+        # Save the uploaded file temporarily
+        temp_dir = tempfile.mkdtemp()
+        temp_path = os.path.join(temp_dir, file.filename)
+        
+        with open(temp_path, "wb") as temp_file:
+            temp_file.write(await file.read())
 
+        # Call your script that processes the .igc file
+        json_data = track_analysis(temp_path)
 
-# Convert the array of coordinates to a LineString
-line = []
-for glide in flight.glides:
-    line.append( LineString(np.array([[fix.lon, fix.lat] for fix in glide.fixes])) )
-# Create a GeoDataFrame with the LineString geometry
-gdf_glides = gpd.GeoDataFrame({
-    'geometry': line, 
-    'alt_change': [glide.alt_change() for glide in flight.glides],
-    'glide_ratio': [glide.glide_ratio() for glide in flight.glides],
-    })
-gdf_glides.set_crs(epsg=4326, inplace=True)
+        # Return the processed JSON
+        return JSONResponse(content=json_data)
 
-# Explore the first GeoDataFrame (this returns a folium map object)
-m = gdf_thermals.explore(color='red')
-gdf_glides.explore(m=m, color='blue')
-# and then we write the map to disk
-m.save('my_map.html')
-# then open it
-webbrowser.open('file://' + os.path.realpath('my_map.html'))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
+    finally:
+        # Clean up the temporary file
+        os.remove(temp_path)
 
+def track_analysis(input_file):
+    """igc_lib wrapper, combined output dict
+    
+    Args:
+        path to igc file
+    """
+
+    # igc_lib custom settings
+    # todo: make igc_lib settings accessible through FastAPI
+    class igcLibCfg(igc_lib.FlightParsingConfig):
+        min_time_for_bearing_change = 2.0
+        min_time_for_thermal = 30
+
+    # load via igc_lib
+    flight = igc_lib.Flight.create_from_file(input_file,igcLibCfg)
+
+    # if flight invalid, return igc_lib debug info
+    if not flight.valid:
+        return {
+            "valid"     : False,
+            "reason"    : flight.notes
+            }
+    
+    # combine and output
+    return {
+        "valid"     : True,
+        "info"      : json.loads(flight.flight_summary()),
+        "glides"    : json.loads(flight.glides_to_gdf().to_json()),
+        "thermals"  : json.loads(flight.thermals_to_gdf().to_json())
+         }
