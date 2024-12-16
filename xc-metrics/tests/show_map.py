@@ -10,7 +10,8 @@ import folium
 url = "http://localhost:8000/process"
 
 # Specify the file to be uploaded
-files = {'file': open('xctrack_izoard.igc', 'rb')}
+# files = {'file': open('xctrack_izoard.igc', 'rb')}
+files = {'file': open('2024-01-27-XTR-3ED7C192ECB8-01.IGC', 'rb')}
 
 # Send POST request with the file
 response = requests.post(url, files=files)
@@ -29,17 +30,22 @@ else:
 # convert json to geodataframe
 glides = gpd.GeoDataFrame.from_features(json_data["glides"]["features"])
 glides.set_crs(epsg=4326, inplace=True)
-thermals = gpd.GeoDataFrame.from_features(json_data["thermals"]["features"])
-thermals.set_crs(epsg=4326, inplace=True)
 
 # Display the first few rows of the GeoDataFrame
 print(glides.head())
-print(thermals.head())
 print(json.dumps(json_data["info"], indent=2))
 
 # Explore the first GeoDataFrame (this returns a folium map object)
 m = glides.explore(color='blue')
-thermals.explore(m=m, color='red')
+
+if {} == json_data["thermals"]:
+    print('no thermals')
+else:
+    thermals = gpd.GeoDataFrame.from_features(json_data["thermals"]["features"])
+    thermals.set_crs(epsg=4326, inplace=True)
+    thermals.explore(m=m, color='red')
+    print(thermals.head())
+
 # set tiles
 folium.TileLayer('OpenTopoMap').add_to(m)
 

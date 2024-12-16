@@ -15,7 +15,7 @@ app = FastAPI()
 @app.post("/process")
 async def convert_igc(file: UploadFile = File(...)):
     # Ensure the uploaded file is a .igc file
-    if not file.filename.endswith(".igc"):
+    if not file.filename.lower().endswith(".igc"):
         raise HTTPException(
             status_code=400, 
             detail="File format not supported. Please upload a .igc file.")
@@ -35,7 +35,9 @@ async def convert_igc(file: UploadFile = File(...)):
         return JSONResponse(content=json_data)
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error: {str(e)}")
 
     finally:
         # Clean up the temporary file
@@ -65,9 +67,12 @@ def track_analysis(input_file):
             }
     
     # combine and output
+    g_json = flight.glides_to_gdf().to_json() if flight.glides else "{}"
+    t_json = flight.thermals_to_gdf().to_json() if flight.thermals else "{}"
+
     return {
         "valid"     : True,
         "info"      : json.loads(flight.flight_summary()),
-        "glides"    : json.loads(flight.glides_to_gdf().to_json()),
-        "thermals"  : json.loads(flight.thermals_to_gdf().to_json())
+        "glides"    : json.loads(g_json),
+        "thermals"  : json.loads(t_json),
          }

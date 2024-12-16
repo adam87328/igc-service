@@ -1,0 +1,41 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Py: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "cwd": "${fileDirname}",
+        },
+        { // curl -F "file=@2024-01-27-XTR-3ED7C192ECB8-01.IGC" http://127.0.0.1:8000/process | more
+            "name": "FastAPI",
+            "cwd": "${fileDirname}",
+            "purpose": [
+                "debug-in-terminal"
+            ],
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "main:app",
+                "--reload"
+            ],
+            "jinja": true
+        },
+        {
+            "name": "igc_lib_dbg with tests/2024-01-27-XTR-3ED7C192ECB8-01.IGC",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/app/submodules/igc_lib/igc_lib_dbg.py",
+            "console": "integratedTerminal",
+            "args": [
+                "${workspaceFolder}/tests/2024-01-27-XTR-3ED7C192ECB8-01.IGC"
+            ]
+        }
+    ]
+}
