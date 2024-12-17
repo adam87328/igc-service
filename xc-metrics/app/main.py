@@ -11,9 +11,12 @@ from submodules.igc_lib import igc_lib
 
 app = FastAPI()
 
-# Define the main route to accept the .igc file
-@app.post("/process")
-async def convert_igc(file: UploadFile = File(...)):
+@app.get("/xcmetrics")
+async def alive():
+    return {"message": "xc-metrics alive"}
+
+@app.post("/xcmetrics")
+async def process(file: UploadFile = File(...)):
     # Ensure the uploaded file is a .igc file
     if not file.filename.lower().endswith(".igc"):
         raise HTTPException(

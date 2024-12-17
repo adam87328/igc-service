@@ -12,7 +12,7 @@ sleep 2
 # Run the test script (adjust the path as needed)
 cd ../tests
 echo "Running test script..."
-python3 show_map.py
+python3 -m unittest tests
 
 # After the test script finishes, shut down Uvicorn
 echo "Shutting down Uvicorn server..."
