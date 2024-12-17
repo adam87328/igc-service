@@ -3,7 +3,7 @@
 # Start Uvicorn server in the background and save its PID
 cd ./app
 echo "Starting Uvicorn server..."
-uvicorn main:app --reload &
+uvicorn main:app --port 8080&
 UVICORN_PID=$!
 
 # Wait for Uvicorn to fully start up (optional, but helpful to avoid timing issues)
