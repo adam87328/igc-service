@@ -17,30 +17,29 @@ async def convert_igc(file: UploadFile = File(...)):
     # Ensure the uploaded file is a .igc file
     if not file.filename.lower().endswith(".igc"):
         raise HTTPException(
-            status_code=400, 
-            detail="File format not supported. Please upload a .igc file.")
-
+            status_code=400, # bad request 
+            detail="File format not .igc")
+    
     try:
         # Save the uploaded file temporarily
         temp_dir = tempfile.mkdtemp()
         temp_path = os.path.join(temp_dir, file.filename)
-        
         with open(temp_path, "wb") as temp_file:
             temp_file.write(await file.read())
-
-        # Call your script that processes the .igc file
+        # call subfunction
         json_data = track_analysis(temp_path)
-
         # Return the processed JSON
         return JSONResponse(content=json_data)
-
+    
     except Exception as e:
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Error: {str(e)}")
-
+        if isinstance(e, HTTPException):
+            raise e
+        else:
+            raise HTTPException(
+                status_code=500, # Internal Server Error
+                detail=f"Internal Error: {str(e)}")
+    
     finally:
-        # Clean up the temporary file
         os.remove(temp_path)
 
 def track_analysis(input_file):
@@ -61,17 +60,15 @@ def track_analysis(input_file):
 
     # if flight invalid, return igc_lib debug info
     if not flight.valid:
-        return {
-            "valid"     : False,
-            "reason"    : flight.notes
-            }
-    
+        raise HTTPException(
+            status_code=400, # bad request
+            detail=f"igc_lib: flight invalid: %s" % flight.notes)
+
     # combine and output
     g_json = flight.glides_to_gdf().to_json() if flight.glides else "{}"
     t_json = flight.thermals_to_gdf().to_json() if flight.thermals else "{}"
 
     return {
-        "valid"     : True,
         "info"      : json.loads(flight.flight_summary()),
         "glides"    : json.loads(g_json),
         "thermals"  : json.loads(t_json),
