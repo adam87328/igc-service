@@ -1,6 +1,7 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 import subprocess
+import json
 
 app = FastAPI()
 
@@ -37,6 +38,7 @@ def track_analysis(data):
     https://github.com/mmomtchev/igc-xc-score
     """
 
+    # todo: choose executable based on OS
     program = ["./igc-xc-score-macos", 
         "quiet=true", 
         "pipe=true", 
@@ -61,4 +63,4 @@ def track_analysis(data):
             status_code=500, # Internal Server Error
             detail=f"Internal Error: igc-xc-score: {stderr}")
     else:
-        return stdout
+        return json.loads(stdout)
