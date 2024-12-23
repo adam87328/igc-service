@@ -168,5 +168,3 @@ cython_debug/
 dbg*.html
 dbg*.json
 TODO.md
-igc-xc-score-linux
-igc-xc-score-macos

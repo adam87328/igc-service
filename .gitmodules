@@ -1,3 +1,6 @@
-[submodule "xc-metrics/app/submodules/igc_lib"]
-	path = xc-metrics/app/submodules/igc_lib
+[submodule "xc-metrics/app/igc_lib"]
+	path = xc-metrics/app/igc_lib
+	url = https://github.com/adam87328/igc_lib.git
+[submodule "xcmetrics/app/igc_lib"]
+	path = xcmetrics/app/igc_lib
 	url = https://github.com/adam87328/igc_lib.git

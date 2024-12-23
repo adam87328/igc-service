@@ -7,6 +7,10 @@ from named_takeoff import NamedTakeoff
 app = FastAPI()
 nt = NamedTakeoff()
 
+@app.get("/")
+async def alive():
+    return {"message": "geolookup"}
+
 @app.get("/takeoffdb")
 async def takeoffdb(lat: float, lon: float, radius: float = 1000):
     """ example, default search radius 1 km
