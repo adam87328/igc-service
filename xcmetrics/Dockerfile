@@ -1,20 +1,12 @@
-# Use an official Python runtime as a parent image
-FROM python:3.10
-
-# Set the working directory in the container
-WORKDIR /app
-
-# Copy the current directory contents into the container at /app
-COPY . /app
-
-# Install any needed packages
-RUN pip install --no-cache-dir -r requirements.txt
+FROM python:3.13
+WORKDIR /code
+COPY ./requirements.txt /code/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
 # Make port 8000 available to the world outside this container
-EXPOSE 8000
+EXPOSE 8081
 
-# Define environment variable
-ENV PYTHONUNBUFFERED=1
+COPY ./app /code/app
 
-# Run the FastAPI server using uvicorn
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+WORKDIR /code/app
+CMD ["uvicorn", "main:app", "--port" "8081"]
