@@ -1,8 +1,10 @@
 #!/bin/bash
 
+# kill running session if exists
+tmux kill-session -t igcservice
+
 # Start a new named tmux session in detached mode. To attach, run
 # $ tmux attach -t igcservice
-# $ tmux kill-session -t igcservice
 tmux new-session -d -s igcservice
 
 # Split the first pane horizontally

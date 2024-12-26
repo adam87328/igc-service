@@ -14,7 +14,7 @@ async def alive():
 @app.get("/takeoffdb")
 async def takeoffdb(lat: float, lon: float, radius: float = 1000):
     """ example, default search radius 1 km
-    /geocode?lat=47.399682&lon=9.942572
+    /takeoffdb?lat=47.399682&lon=9.942572
     {
         "name": "Niedere - Andelsbuch",
         "country": "AT",
