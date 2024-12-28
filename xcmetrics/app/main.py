@@ -75,4 +75,5 @@ def track_analysis(input_file):
         "info"      : json.loads(flight.flight_summary()),
         "glides"    : json.loads(g_json),
         "thermals"  : json.loads(t_json),
+        "timeseries": flight.timeseries()
          }
