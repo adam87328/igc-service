@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
 # offline DB of towns/cities, returns closest match
-import reverse_geocode
+from nearest_town import NearestTown
 # offline DB of paraglinding takeoff locations, paraglidingearth.com
 from named_takeoff import NamedTakeoff
 # offline DB of admin-1 (state/province) borders
@@ -10,8 +10,9 @@ from named_takeoff import NamedTakeoff
 from country_state import CountryState
 
 app = FastAPI()
-nt = NamedTakeoff()
-cs = CountryState()
+takeoff = NamedTakeoff()
+state = CountryState()
+town = NearestTown()
 
 @app.get("/")
 async def alive():
@@ -19,28 +20,16 @@ async def alive():
 
 @app.get("/takeoffdb")
 async def takeoffdb(lat: float, lon: float, radius: float = 1000):
-    return JSONResponse( content = nt.query(lat,lon,radius) )
+    return JSONResponse( content = takeoff.query(lat,lon,radius) )
 
 @app.get("/nearest_town")
 async def takeoffdb(lat: float, lon: float):
-    """ example
-    /nearest_town?lat=47.399682&lon=9.942572
-    {
-        "country_code": "AT",
-        "city": "Bizau",
-        "latitude": 47.36906,
-        "longitude": 9.92839,
-        "population": 1107,
-        "state": "Vorarlberg",
-        "county": "Politischer Bezirk Bregenz",
-        "country": "Austria"
-    }
-    """
-    return JSONResponse( content = reverse_geocode.get([lat, lon]))
+    ddict = town.query(lat, lon)
+    return JSONResponse(ddict)
 
 @app.get("/admin1")
 async def takeoffdb(lat: float, lon: float):
-    ddict = cs.query(lat, lon)
+    ddict = state.query(lat, lon)
     if ddict:
         return JSONResponse(ddict)
     else:

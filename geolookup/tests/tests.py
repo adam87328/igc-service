@@ -46,6 +46,7 @@ class TestMicroservice(unittest.TestCase):
 
         d = json.loads(response.text)
         self.assertEqual( d["city"], "Bizau")
+        self.assertEqual( d["iso_3166_2"], "AT")
 
     def test_route_admin1(self):
         """Test nearest_town with known coordinate"""
