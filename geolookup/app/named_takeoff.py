@@ -3,7 +3,16 @@ import geopandas as gpd
 from shapely.geometry import Point
 
 class NamedTakeoff:
-
+    """ example, default search radius 1 km
+    /takeoffdb?lat=47.399682&lon=9.942572
+    {
+        "name": "Niedere - Andelsbuch",
+        "country": "AT",
+        "dist": 747.4395282905823,
+        "db_lat": 47.40349999999999,
+        "db_lon": 9.93893
+    }
+    """
     def __init__(self):
         # Load the GeoJSON FeatureCollection into a GeoDataFrame
         p = os.path.join(os.path.dirname(os.path.abspath(__file__)),

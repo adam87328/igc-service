@@ -30,22 +30,38 @@ class TestMicroservice(unittest.TestCase):
         url = self.url + f"/takeoffdb?lat={lat}&lon={lon}"
 
         response = requests.get(url)
-        d = json.loads(response.text)
-
         self.assertEqual(response.status_code,200)
+
+        d = json.loads(response.text)
         self.assertEqual( d["name"], "Niedere - Andelsbuch")
 
-    def test_route_geocode(self):
-        """Test geocode with known coordinate"""
+    def test_route_nearest_town(self):
+        """Test nearest_town with known coordinate"""
         lat=47.399682
         lon=9.942572
-        url = self.url + f"/geocode?lat={lat}&lon={lon}"
+        url = self.url + f"/nearest_town?lat={lat}&lon={lon}"
 
         response = requests.get(url)
-        d = json.loads(response.text)
-        
         self.assertEqual(response.status_code,200)
+
+        d = json.loads(response.text)
         self.assertEqual( d["city"], "Bizau")
+
+    def test_route_admin1(self):
+        """Test nearest_town with known coordinate"""
+        lat=47.399682
+        lon=9.942572
+        url = self.url + f"/admin1?lat={lat}&lon={lon}"
+
+        response = requests.get(url)
+        self.assertEqual(response.status_code,200)
+
+        d = json.loads(response.text)
+        self.assertEqual( d["admin0"], "Austria")
+        self.assertEqual( d["admin1"], "Vorarlberg")
+        self.assertEqual( d["iso_3166_1"], "AT-8")
+        self.assertEqual( d["iso_3166_2"], "AT")
+
 
 if __name__ == '__main__':
     unittest.main()
