@@ -4,19 +4,39 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional, Union
 import logging
+from contextlib import asynccontextmanager
 from copernicus_dem import CopernicusDEM
 from config import DEM_TILES_DIR
 
-app = FastAPI()
 logger = logging.getLogger(__name__)
 
-# Initialize Copernicus DEM reader
-try:
-    dem_reader = CopernicusDEM(DEM_TILES_DIR)
-    logger.info(f"Copernicus DEM initialized with tiles from: {DEM_TILES_DIR}")
-except Exception as e:
-    logger.error(f"Failed to initialize Copernicus DEM: {e}")
-    dem_reader = None
+# Global DEM reader instance
+dem_reader = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage DEM reader lifecycle."""
+    global dem_reader
+    
+    # Startup: Initialize DEM reader
+    try:
+        dem_reader = CopernicusDEM(DEM_TILES_DIR)
+        logger.info(f"Copernicus DEM initialized with tiles from: {DEM_TILES_DIR}")
+    except Exception as e:
+        logger.error(f"Failed to initialize Copernicus DEM: {e}")
+        dem_reader = None
+    
+    yield
+    
+    # Shutdown: Close DEM reader
+    if dem_reader:
+        try:
+            dem_reader.close()
+            logger.info("Copernicus DEM closed")
+        except Exception as e:
+            logger.error(f"Error closing DEM reader: {e}")
+
+app = FastAPI(lifespan=lifespan)
 
 class Coordinate(BaseModel):
     """Single coordinate point"""

@@ -147,6 +147,8 @@ class CopernicusDEM:
         """
         Get elevations for a batch of coordinates.
         
+        Optimized to read multiple points from the same tile in one operation.
+        
         Args:
             coords: List of (lon, lat) tuples
         
@@ -154,11 +156,44 @@ class CopernicusDEM:
             List of elevation values (or None for unavailable)
         """
         elevations = []
-        for lon, lat in coords:
-            elevation = self.get_elevation(lat, lon)
-            elevations.append(elevation)
         
-        return elevations
+        # Group coordinates by tile
+        from collections import defaultdict
+        tile_groups = defaultdict(list)
+        
+        for idx, (lon, lat) in enumerate(coords):
+            tile_path = self._get_tile_path(lat, lon)
+            tile_groups[tile_path].append((idx, lat, lon))
+        
+        # Process each tile group
+        results = [None] * len(coords)
+        
+        for tile_path, coord_list in tile_groups.items():
+            if not tile_path:
+                # No tile available, leave as None
+                continue
+            
+            dataset = self._get_tile_dataset(tile_path)
+            if not dataset:
+                continue
+            
+            # Read all coordinates from this tile
+            for idx, lat, lon in coord_list:
+                try:
+                    row, col = dataset.index(lon, lat)
+                    
+                    if 0 <= row < dataset.height and 0 <= col < dataset.width:
+                        elevation = dataset.read(1, window=((row, row+1), (col, col+1)))[0, 0]
+                        
+                        # Handle nodata values
+                        if dataset.nodata is not None and elevation == dataset.nodata:
+                            continue
+                        
+                        results[idx] = float(elevation)
+                except Exception as e:
+                    logger.error(f"Error reading elevation at {lat}, {lon}: {e}")
+        
+        return results
     
     def close(self):
         """Close all cached datasets."""

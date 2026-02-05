@@ -112,8 +112,8 @@ def download_alps_region(output_dir):
     total_tiles = 0
     successful = 0
     
-    for lat in range(lat_min, lat_max):
-        for lon in range(lon_min, lon_max):
+    for lat in range(lat_min, lat_max + 1):
+        for lon in range(lon_min, lon_max + 1):
             total_tiles += 1
             if download_tile(lat, lon, output_dir):
                 successful += 1

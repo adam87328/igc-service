@@ -6,7 +6,7 @@ services:
     ports:
       - "8084:8084"
     volumes:
-      # Mount local DEM tiles directory to /data/dem_tiles in the container
+      # REQUIRED: Update this path to your actual DEM tiles directory
       # Replace /path/to/your/dem_tiles with the actual path on your host
       - /path/to/your/dem_tiles:/data/dem_tiles:ro
     environment:
@@ -16,7 +16,7 @@ services:
       - LOG_LEVEL=info
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8084/"]
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8084/')"]
       interval: 30s
       timeout: 10s
       retries: 3
