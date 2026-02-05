@@ -6,13 +6,9 @@ services:
     ports:
       - "8084:8084"
     volumes:
-      # REQUIRED: Update this path to your actual DEM tiles directory
-      # Replace /path/to/your/dem_tiles with the actual path on your host
-      - /Users/adamski/flugbuch_webapp/dem_tiles:/data/dem_tiles:ro
+      - ${DEM_TILES_DIR:-./dem_tiles}:/data/dem_tiles:ro
     environment:
-      # Optional: Override the default DEM tiles directory
-      # - DEM_TILES_DIR=/data/dem_tiles
-      # Logging level
+      - DEM_TILES_DIR=/data/dem_tiles
       - LOG_LEVEL=info
     restart: unless-stopped
     healthcheck:

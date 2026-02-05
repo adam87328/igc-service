@@ -18,26 +18,33 @@ Digital Elevation Model service that adds ground elevation data to GPS coordinat
 
 ## Running All Services
 
-Use the tmux script to start all services:
+### Using Docker Compose (Recommended)
+
+Start all services with Docker Compose:
 ```bash
-./run_tmux.sh
+docker compose up
 ```
 
-Then attach to the session:
+Or run in detached mode:
 ```bash
-tmux attach -t igcservice
+docker compose up -d
 ```
 
-## Integration Example
+To stop all services:
+```bash
+docker compose down
+```
 
-See `test_integration.py` for a complete example of using xcmetrics and DEM services together:
+**Note:** For the DEM service, you need to provide DEM tiles. Set the `DEM_TILES_DIR` environment variable to your DEM tiles directory:
+```bash
+export DEM_TILES_DIR=/path/to/your/dem_tiles
+docker compose up
+```
 
-```python
-# 1. Process IGC file with xcmetrics
-response = requests.post('http://localhost:8081/', files={'file': igc_file})
-xcmetrics_data = response.json()
+### Running Individual Services
 
-# 2. Add ground elevation data with DEM service
-response = requests.post('http://localhost:8084/', json=xcmetrics_data['glides'])
-enhanced_data = response.json()
+Each service can also be run independently using its own docker-compose file in the service directory:
+```bash
+cd service/xcmetrics
+docker compose up
 ```

@@ -2,6 +2,7 @@ from fastapi import HTTPException
 import subprocess
 import json
 import sys
+import os
 
 def igc_xc_score(data):
     """igc-xc-score wrapper
@@ -10,10 +11,11 @@ def igc_xc_score(data):
     """
 
     # choose executable based on OS
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     if sys.platform == 'darwin': # macos
-        bin = "./igc-xc-score-macos"
+        bin = os.path.join(script_dir, "igc-xc-score-macos")
     else:
-        bin = "./igc-xc-score-linux"
+        bin = os.path.join(script_dir, "igc-xc-score-linux")
 
     program = [bin, 
         "quiet=true", 
