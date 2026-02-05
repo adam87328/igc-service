@@ -1,1 +1,0 @@
-https://github.com/mmomtchev/igc-xc-score/releases/tag/v1.8.0

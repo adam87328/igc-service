@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  dem:
+    build: .
+    ports:
+      - "8084:8084"
+    volumes:
+      # REQUIRED: Update this path to your actual DEM tiles directory
+      # Replace /path/to/your/dem_tiles with the actual path on your host
+      - /Users/adamski/flugbuch_webapp/dem_tiles:/data/dem_tiles:ro
+    environment:
+      # Optional: Override the default DEM tiles directory
+      # - DEM_TILES_DIR=/data/dem_tiles
+      # Logging level
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8084/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
