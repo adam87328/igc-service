@@ -4,29 +4,19 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional, Union
 import logging
+from copernicus_dem import CopernicusDEM
+from config import DEM_TILES_DIR
 
 app = FastAPI()
 logger = logging.getLogger(__name__)
 
-# Note: In production, SRTM data should be pre-downloaded or use a local DEM service
-# For demonstration, we use estimation since SRTM data download may not be available
-USE_SRTM = False  # Set to True when SRTM data is available and pre-downloaded
-
+# Initialize Copernicus DEM reader
 try:
-    import srtm
-    elevation_data = srtm.get_data()
-    # Test if SRTM data is actually accessible
-    test_elev = elevation_data.get_elevation(45.0, 7.0)
-    if test_elev is not None:
-        USE_SRTM = True
-        logger.info("SRTM elevation data initialized and working")
-    else:
-        USE_SRTM = False
-        logger.warning("SRTM initialized but data not accessible, using estimation mode")
+    dem_reader = CopernicusDEM(DEM_TILES_DIR)
+    logger.info(f"Copernicus DEM initialized with tiles from: {DEM_TILES_DIR}")
 except Exception as e:
-    logger.warning(f"SRTM not available, using estimation mode: {e}")
-    elevation_data = None
-    USE_SRTM = False
+    logger.error(f"Failed to initialize Copernicus DEM: {e}")
+    dem_reader = None
 
 class Coordinate(BaseModel):
     """Single coordinate point"""
@@ -172,7 +162,7 @@ async def process_coordinates(coordinates: List[Coordinate]) -> Dict[str, Any]:
 
 async def get_elevations_batch(coords: List[List[float]]) -> List[Optional[float]]:
     """
-    Get elevations for a batch of coordinates using SRTM data or estimation.
+    Get elevations for a batch of coordinates using Copernicus DEM data.
     
     Args:
         coords: List of [lon, lat] pairs
@@ -186,17 +176,16 @@ async def get_elevations_batch(coords: List[List[float]]) -> List[Optional[float
     elevations = []
     for coord in coords:
         try:
-            # SRTM expects (latitude, longitude) order
+            # coords are in [lon, lat] format
             lat, lon = coord[1], coord[0]
             
-            if USE_SRTM and elevation_data:
-                # Use SRTM data
-                elevation = elevation_data.get_elevation(lat, lon)
+            if dem_reader:
+                # Use Copernicus DEM data
+                elevation = dem_reader.get_elevation(lat, lon)
             else:
-                # Simple estimation based on latitude (for demonstration)
-                # In production, this should use actual SRTM data
-                # This provides a rough elevation estimate for testing
-                elevation = estimate_elevation(lat, lon)
+                # Fallback to None if DEM reader not available
+                logger.warning("DEM reader not available, returning None")
+                elevation = None
             
             logger.debug(f"Elevation for {lat}, {lon}: {elevation}")
             elevations.append(elevation)
@@ -205,42 +194,3 @@ async def get_elevations_batch(coords: List[List[float]]) -> List[Optional[float
             elevations.append(None)
     
     return elevations
-
-def estimate_elevation(lat: float, lon: float) -> float:
-    """
-    Simple elevation estimation for demonstration purposes.
-    In production, use actual SRTM or other DEM data.
-    
-    This provides a basic estimation based on:
-    - Mountain ranges (Alps, Himalayas, etc.) have higher elevations
-    - Ocean areas have elevation ~0
-    - Continental areas have moderate elevation
-    
-    Args:
-        lat: Latitude
-        lon: Longitude
-        
-    Returns:
-        Estimated elevation in meters
-    """
-    # Alps region (rough approximation)
-    if 45 <= lat <= 48 and 5 <= lon <= 17:
-        # Estimate based on distance from valley floor
-        base_elevation = 500
-        variation = abs((lat - 46.5) * 200) + abs((lon - 11) * 100)
-        return base_elevation + variation
-    
-    # Pyrenees
-    elif 42 <= lat <= 43 and -2 <= lon <= 3:
-        return 800 + abs((lat - 42.5) * 300)
-    
-    # General continental Europe
-    elif 35 <= lat <= 60 and -10 <= lon <= 40:
-        return 200 + abs(lat - 50) * 20
-    
-    # Ocean/coastal
-    elif abs(lat) < 70:
-        return 50
-    
-    # Default
-    return 100
