@@ -8,7 +8,7 @@ services:
     volumes:
       # REQUIRED: Update this path to your actual DEM tiles directory
       # Replace /path/to/your/dem_tiles with the actual path on your host
-      - /path/to/your/dem_tiles:/data/dem_tiles:ro
+      - /Users/adamski/flugbuch_webapp/dem_tiles:/data/dem_tiles:ro
     environment:
       # Optional: Override the default DEM tiles directory
       # - DEM_TILES_DIR=/data/dem_tiles
