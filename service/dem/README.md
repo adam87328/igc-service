@@ -2,6 +2,27 @@
 
 Digital Elevation Model (DEM) microservice that adds ground elevation data to GPS coordinates using Copernicus DSM tiles.
 
+## Quick Start
+
+1. **Download DEM tiles** (one-time setup):
+   ```bash
+   cd downloadDEM
+   python download.py /data/dem_tiles
+   ```
+
+2. **Run with Docker**:
+   ```bash
+   docker build -t dem .
+   docker run -p 8084:8084 -v /data/dem_tiles:/data/dem_tiles:ro dem
+   ```
+
+3. **Test the service**:
+   ```bash
+   curl -X POST http://localhost:8084/ \
+     -H "Content-Type: application/json" \
+     -d '{"coordinates": [{"lat": 47.5, "lon": 9.5}]}'
+   ```
+
 ## Overview
 
 This service accepts GeoJSON FeatureCollections or coordinate lists and enriches them with ground elevation data from Copernicus DSM (Digital Surface Model) tiles. It's designed to work seamlessly with the output from the xcmetrics service.
@@ -164,6 +185,16 @@ docker run -p 8084:8084 \
   -e DEM_TILES_DIR=/mnt/tiles \
   dem
 ```
+
+### With Docker Compose
+
+Edit `docker-compose.yml` to set your tiles directory path, then:
+
+```bash
+docker-compose up -d
+```
+
+The compose file includes health checks and automatic restart configuration.
 
 ### With tmux (all services)
 ```bash
