@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  xcmetrics:
+    build: .
+    ports:
+      - "8081:8081"
+    environment:
+      # Logging level
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

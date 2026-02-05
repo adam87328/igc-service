@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  xcmetrics:
+    build: ./service/xcmetrics
+    ports:
+      - "8081:8081"
+    environment:
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  geolookup:
+    build: ./service/geolookup
+    ports:
+      - "8082:8082"
+    environment:
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8082/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  xcscore:
+    build: ./service/xcscore
+    ports:
+      - "8083:8083"
+    environment:
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8083/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  dem:
+    build: ./service/dem
+    ports:
+      - "8084:8084"
+    volumes:
+      # set via ENV variable:
+      # export DEM_TILES_DIR=/path/to/your/dem_tiles
+      - ${DEM_TILES_DIR:-./dem_tiles}:/data/dem_tiles:ro
+    environment:
+      - DEM_TILES_DIR=/data/dem_tiles
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8084/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
