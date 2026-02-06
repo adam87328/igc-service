@@ -1,6 +1,0 @@
-*.pyc
-*.igc
-.*.swp
-
-# Do not ignore anything in testfiles
-!testfiles/*
