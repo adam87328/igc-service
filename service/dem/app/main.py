@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional
 import logging
 from contextlib import asynccontextmanager
 from copernicus_dem import CopernicusDEM
@@ -38,69 +37,37 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-class Coordinate(BaseModel):
-    """Single coordinate point"""
+class TrackPoint(BaseModel):
+    """Single track point with optional altitude and segment information"""
+    timestamp: str  # ISO 8601 format
     lat: float
     lon: float
+    gps_alt: Optional[float] = None  # meters
+    pressure_alt: Optional[float] = None  # meters
+    segment_type: Optional[str] = None  # "glide" or "thermal"
+    segment_id: Optional[int] = None
 
-class CoordinateList(BaseModel):
-    """List of coordinates"""
-    coordinates: List[Coordinate]
-
-class GeoJSONInput(BaseModel):
-    """Flexible input that accepts either GeoJSON or coordinate list"""
-    geojson: Optional[Dict[str, Any]] = None
-    coordinates: Optional[List[Coordinate]] = None
+class TrackPointsInput(BaseModel):
+    """Enhanced timeseries format"""
+    track_points: List[TrackPoint]
 
 @app.get("/")
 async def alive():
     return {"message": "dem"}
 
 @app.post("/")
-async def process(input_data: Union[Dict[str, Any], GeoJSONInput]):
+async def process(input_data: TrackPointsInput):
     """
-    Add digital elevation model (ground elevation) data to coordinates.
+    Add digital elevation model (terrain elevation) data to track points.
     
     Accepts:
-    - GeoJSON FeatureCollection (from xcmetrics)
-    - Simple coordinate list [{lat, lon}, ...]
-    - Mixed input with both
+    - Enhanced timeseries format with track_points
     
     Returns:
-    - Enhanced GeoJSON with ground_elevation added to properties
-    - Or coordinate list with elevation data
+    - Track points with terrain_alt added to each point
     """
     try:
-        # Handle different input types
-        if isinstance(input_data, dict):
-            # Direct dict input - check if it's GeoJSON or coordinate list
-            if "type" in input_data and input_data["type"] == "FeatureCollection":
-                # GeoJSON input
-                return await process_geojson(input_data)
-            elif "coordinates" in input_data:
-                # Coordinate list input
-                coords = [Coordinate(**c) for c in input_data["coordinates"]]
-                return await process_coordinates(coords)
-            elif "geojson" in input_data:
-                # Wrapped GeoJSON
-                return await process_geojson(input_data["geojson"])
-            else:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Invalid input format. Expected GeoJSON FeatureCollection or coordinate list"
-                )
-        else:
-            # Pydantic model input
-            if input_data.geojson:
-                return await process_geojson(input_data.geojson)
-            elif input_data.coordinates:
-                return await process_coordinates(input_data.coordinates)
-            else:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Either geojson or coordinates must be provided"
-                )
-    
+        return await process_track_points(input_data.track_points)
     except Exception as e:
         if isinstance(e, HTTPException):
             raise e
@@ -111,74 +78,30 @@ async def process(input_data: Union[Dict[str, Any], GeoJSONInput]):
                 detail=f"Internal Error: {str(e)}"
             )
 
-async def process_geojson(geojson_data: Dict[str, Any]) -> Dict[str, Any]:
+async def process_track_points(track_points: List[TrackPoint]) -> Dict[str, Any]:
     """
-    Process GeoJSON FeatureCollection and add ground elevation to each feature.
+    Process a list of track points and add terrain elevation to each.
     
     Args:
-        geojson_data: GeoJSON FeatureCollection with LineString geometries
+        track_points: List of TrackPoint objects
         
     Returns:
-        Enhanced GeoJSON with ground_elevation array added to properties
-    """
-    if geojson_data.get("type") != "FeatureCollection":
-        raise HTTPException(
-            status_code=400,
-            detail="GeoJSON must be a FeatureCollection"
-        )
-    
-    features = geojson_data.get("features", [])
-    
-    for feature in features:
-        geometry = feature.get("geometry", {})
-        if geometry.get("type") in ["LineString", "MultiLineString", "Point"]:
-            # Extract coordinates
-            coords = []
-            if geometry["type"] == "LineString":
-                coords = geometry["coordinates"]
-            elif geometry["type"] == "Point":
-                coords = [geometry["coordinates"]]
-            elif geometry["type"] == "MultiLineString":
-                # Flatten MultiLineString
-                for line in geometry["coordinates"]:
-                    coords.extend(line)
-            
-            # Get elevations for all points
-            elevations = await get_elevations_batch(coords)
-            
-            # Add to properties
-            if "properties" not in feature:
-                feature["properties"] = {}
-            feature["properties"]["ground_elevation"] = elevations
-    
-    return geojson_data
-
-async def process_coordinates(coordinates: List[Coordinate]) -> Dict[str, Any]:
-    """
-    Process a list of coordinates and return them with elevation data.
-    
-    Args:
-        coordinates: List of Coordinate objects
-        
-    Returns:
-        Dict with coordinates and their elevations
+        Dict with track_points enhanced with terrain_alt field
     """
     # Convert to [lon, lat] format for API
-    coords = [[c.lon, c.lat] for c in coordinates]
+    coords = [[tp.lon, tp.lat] for tp in track_points]
     
     # Get elevations
     elevations = await get_elevations_batch(coords)
     
     # Return enhanced data
     result = []
-    for coord, elev in zip(coordinates, elevations):
-        result.append({
-            "lat": coord.lat,
-            "lon": coord.lon,
-            "ground_elevation": elev
-        })
+    for track_point, terrain_alt in zip(track_points, elevations):
+        point_dict = track_point.model_dump()
+        point_dict["terrain_alt"] = terrain_alt
+        result.append(point_dict)
     
-    return {"coordinates": result}
+    return {"track_points": result}
 
 async def get_elevations_batch(coords: List[List[float]]) -> List[Optional[float]]:
     """

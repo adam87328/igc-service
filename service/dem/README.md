@@ -1,6 +1,6 @@
 # DEM Microservice
 
-Digital Elevation Model (DEM) microservice that adds ground elevation data to GPS coordinates using Copernicus DSM tiles.
+Digital Elevation Model (DEM) microservice that adds terrain elevation data to GPS track points using Copernicus DSM tiles.
 
 ## Quick Start
 
@@ -20,21 +20,32 @@ Digital Elevation Model (DEM) microservice that adds ground elevation data to GP
    ```bash
    curl -X POST http://localhost:8084/ \
      -H "Content-Type: application/json" \
-     -d '{"coordinates": [{"lat": 47.5, "lon": 9.5}]}'
+     -d '{
+       "track_points": [
+         {
+           "timestamp": "2024-08-15T10:23:45Z",
+           "lat": 47.5,
+           "lon": 9.5,
+           "gps_alt": 1523,
+           "pressure_alt": 1520,
+           "segment_type": "glide",
+           "segment_id": 0
+         }
+       ]
+     }'
    ```
 
 ## Overview
 
-This service accepts GeoJSON FeatureCollections or coordinate lists and enriches them with ground elevation data from Copernicus DSM (Digital Surface Model) tiles. It's designed to work seamlessly with the output from the xcmetrics service.
+This service accepts track points in an enhanced timeseries format and enriches them with terrain elevation data from Copernicus DSM (Digital Surface Model) tiles. It adds `terrain_alt` (terrain altitude) to each track point.
 
 ## Features
 
-- Accepts GeoJSON FeatureCollection (from xcmetrics or similar sources)
-- Accepts simple coordinate lists
-- Supports LineString, Point, and MultiLineString geometries
+- Accepts enhanced timeseries format with track_points
+- Adds terrain_alt to each track point
 - Uses Copernicus DSM 30m resolution tiles via rasterio
-- Returns enhanced data with `ground_elevation` added to properties
 - Configurable tile storage location
+- Handles missing tiles gracefully (returns None for terrain_alt)
 
 ## Copernicus DSM Tiles
 
@@ -75,85 +86,75 @@ Health check endpoint.
 ```
 
 ### POST /
-Add ground elevation data to coordinates.
+Add terrain elevation data to track points.
 
-**Input Format 1 - GeoJSON FeatureCollection:**
+**Input Format - Enhanced Timeseries:**
 ```json
 {
-  "type": "FeatureCollection",
-  "features": [
+  "track_points": [
     {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [[lon, lat], [lon, lat], ...]
-      },
-      "properties": {
-        "name": "Flight track"
-      }
+      "timestamp": "2024-08-15T10:23:45Z",
+      "lat": 44.819067,
+      "lon": 6.7287,
+      "gps_alt": 1523,
+      "pressure_alt": 1520,
+      "segment_type": "glide",
+      "segment_id": 0
     }
   ]
 }
 ```
 
-**Input Format 2 - Coordinate List:**
-```json
-{
-  "coordinates": [
-    {"lat": 45.9237, "lon": 6.8694},
-    {"lat": 45.8326, "lon": 6.8652}
-  ]
-}
-```
+**Required Fields:**
+- `timestamp`: ISO 8601 timestamp string
+- `lat`: Latitude in decimal degrees
+- `lon`: Longitude in decimal degrees
 
-**Response (GeoJSON):**
+**Optional Fields:**
+- `gps_alt`: GPS altitude in meters
+- `pressure_alt`: Pressure altitude in meters
+- `segment_type`: Segment type (e.g., "glide" or "thermal")
+- `segment_id`: Segment identifier (integer)
+
+**Response:**
 ```json
 {
-  "type": "FeatureCollection",
-  "features": [
+  "track_points": [
     {
-      "type": "Feature",
-      "geometry": {...},
-      "properties": {
-        "name": "Flight track",
-        "ground_elevation": [1028.3, 1046.9, ...]
-      }
+      "timestamp": "2024-08-15T10:23:45Z",
+      "lat": 44.819067,
+      "lon": 6.7287,
+      "gps_alt": 1523,
+      "pressure_alt": 1520,
+      "segment_type": "glide",
+      "segment_id": 0,
+      "terrain_alt": 1028.3
     }
   ]
 }
 ```
 
-**Response (Coordinate List):**
-```json
-{
-  "coordinates": [
-    {"lat": 45.9237, "lon": 6.8694, "ground_elevation": 1028.3},
-    {"lat": 45.8326, "lon": 6.8652, "ground_elevation": 1046.9}
-  ]
-}
-```
+The response includes all original fields plus the `terrain_alt` field containing the terrain elevation in meters (or `null` if unavailable).
 
 ## Usage with xcmetrics
 
-The DEM service is designed to work with xcmetrics output:
+The DEM service is designed to enhance track points from the xcmetrics service:
 
 ```python
 import requests
 
-# 1. Get xcmetrics data
+# 1. Get xcmetrics data (assumed to produce track_points)
 with open('flight.igc', 'rb') as f:
     response = requests.post('http://localhost:8081/', files={'file': f})
     xcmetrics_data = response.json()
 
-# 2. Add ground elevation to glides
-glides = xcmetrics_data['glides']
-response = requests.post('http://localhost:8084/', json=glides)
-enhanced_glides = response.json()
+# 2. Add terrain elevation to track points
+track_points_data = {"track_points": xcmetrics_data['track_points']}
+response = requests.post('http://localhost:8084/', json=track_points_data)
+enhanced_data = response.json()
 
-# 3. Add ground elevation to thermals
-thermals = xcmetrics_data['thermals']
-response = requests.post('http://localhost:8084/', json=thermals)
-enhanced_thermals = response.json()
+# Now you have terrain elevation data for the entire flight
+print(f"Processed {len(enhanced_data['track_points'])} track points")
 ```
 
 ## Running the Service

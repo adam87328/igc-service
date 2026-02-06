@@ -69,8 +69,8 @@ def track_analysis(input_file):
 
     # combine and output
     return {
-        "info"      : json.loads(flight.flight_summary()),
-        "glides"    : json.loads(flight.glides_to_gdf()),
-        "thermals"  : json.loads(flight.thermals_to_gdf()),
-        "timeseries": flight.timeseries()
+        "info"        : json.loads(flight.flight_summary()),
+        "glides"      : json.loads(flight.glides_to_gdf()),
+        "thermals"    : json.loads(flight.thermals_to_gdf()),
+        "track_points": flight.timeseries().get('track_points')
          }

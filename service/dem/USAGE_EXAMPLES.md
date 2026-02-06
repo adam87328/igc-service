@@ -155,13 +155,21 @@ Response:
 {"message": "dem"}
 ```
 
-### Example 1: Single Coordinate
+### Example 1: Single Track Point
 ```bash
 curl -X POST http://localhost:8084/ \
   -H "Content-Type: application/json" \
   -d '{
-    "coordinates": [
-      {"lat": 47.5, "lon": 9.5}
+    "track_points": [
+      {
+        "timestamp": "2024-08-15T10:23:45Z",
+        "lat": 47.5,
+        "lon": 9.5,
+        "gps_alt": 1523,
+        "pressure_alt": 1520,
+        "segment_type": "glide",
+        "segment_id": 0
+      }
     ]
   }'
 ```
@@ -169,25 +177,50 @@ curl -X POST http://localhost:8084/ \
 Response:
 ```json
 {
-  "coordinates": [
+  "track_points": [
     {
+      "timestamp": "2024-08-15T10:23:45Z",
       "lat": 47.5,
       "lon": 9.5,
-      "ground_elevation": 394.0
+      "gps_alt": 1523,
+      "pressure_alt": 1520,
+      "segment_type": "glide",
+      "segment_id": 0,
+      "terrain_alt": 394.0
     }
   ]
 }
 ```
 
-### Example 2: Multiple Coordinates
+### Example 2: Multiple Track Points
 ```bash
 curl -X POST http://localhost:8084/ \
   -H "Content-Type: application/json" \
   -d '{
-    "coordinates": [
-      {"lat": 47.5, "lon": 9.5},
-      {"lat": 47.8, "lon": 9.8},
-      {"lat": 46.5, "lon": 8.5}
+    "track_points": [
+      {
+        "timestamp": "2024-08-15T10:23:45Z",
+        "lat": 47.5,
+        "lon": 9.5,
+        "gps_alt": 1523,
+        "segment_type": "glide",
+        "segment_id": 0
+      },
+      {
+        "timestamp": "2024-08-15T10:23:50Z",
+        "lat": 47.8,
+        "lon": 9.8,
+        "gps_alt": 1650,
+        "segment_type": "thermal",
+        "segment_id": 1
+      },
+      {
+        "timestamp": "2024-08-15T10:23:55Z",
+        "lat": 46.5,
+        "lon": 8.5,
+        "segment_type": "glide",
+        "segment_id": 0
+      }
     ]
   }'
 ```
@@ -195,48 +228,49 @@ curl -X POST http://localhost:8084/ \
 Response:
 ```json
 {
-  "coordinates": [
+  "track_points": [
     {
+      "timestamp": "2024-08-15T10:23:45Z",
       "lat": 47.5,
       "lon": 9.5,
-      "ground_elevation": 394.0
+      "gps_alt": 1523,
+      "segment_type": "glide",
+      "segment_id": 0,
+      "terrain_alt": 394.0
     },
     {
+      "timestamp": "2024-08-15T10:23:50Z",
       "lat": 47.8,
       "lon": 9.8,
-      "ground_elevation": 643.34
+      "gps_alt": 1650,
+      "segment_type": "thermal",
+      "segment_id": 1,
+      "terrain_alt": 643.34
     },
     {
+      "timestamp": "2024-08-15T10:23:55Z",
       "lat": 46.5,
       "lon": 8.5,
-      "ground_elevation": null
+      "segment_type": "glide",
+      "segment_id": 0,
+      "terrain_alt": null
     }
   ]
 }
 ```
 
-Note: `null` elevation indicates no tile available for that location.
+Note: `null` terrain_alt indicates no tile available for that location.
 
-### Example 3: GeoJSON LineString
+### Example 3: Minimal Track Points (Only Required Fields)
 ```bash
 curl -X POST http://localhost:8084/ \
   -H "Content-Type: application/json" \
   -d '{
-    "type": "FeatureCollection",
-    "features": [
+    "track_points": [
       {
-        "type": "Feature",
-        "geometry": {
-          "type": "LineString",
-          "coordinates": [
-            [9.5, 47.5],
-            [9.6, 47.6],
-            [9.7, 47.7]
-          ]
-        },
-        "properties": {
-          "name": "Flight Path"
-        }
+        "timestamp": "2024-08-15T10:23:45Z",
+        "lat": 47.5,
+        "lon": 9.5
       }
     ]
   }'
@@ -245,46 +279,15 @@ curl -X POST http://localhost:8084/ \
 Response:
 ```json
 {
-  "type": "FeatureCollection",
-  "features": [
+  "track_points": [
     {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [9.5, 47.5],
-          [9.6, 47.6],
-          [9.7, 47.7]
-        ]
-      },
-      "properties": {
-        "name": "Flight Path",
-        "ground_elevation": [394.0, 422.34, 543.21]
-      }
+      "timestamp": "2024-08-15T10:23:45Z",
+      "lat": 47.5,
+      "lon": 9.5,
+      "terrain_alt": 394.0
     }
   ]
 }
-```
-
-### Example 4: GeoJSON Point
-```bash
-curl -X POST http://localhost:8084/ \
-  -H "Content-Type: application/json" \
-  -d '{
-    "type": "FeatureCollection",
-    "features": [
-      {
-        "type": "Feature",
-        "geometry": {
-          "type": "Point",
-          "coordinates": [9.5, 47.5]
-        },
-        "properties": {
-          "name": "Takeoff"
-        }
-      }
-    ]
-  }'
 ```
 
 ---
@@ -298,76 +301,77 @@ import requests
 # DEM service URL
 dem_url = "http://localhost:8084/"
 
-# Get elevation for coordinates
-def get_elevations(coordinates):
+# Get terrain elevation for track points
+def get_terrain_elevations(track_points):
     response = requests.post(
         dem_url,
-        json={"coordinates": coordinates}
+        json={"track_points": track_points}
     )
     response.raise_for_status()
     return response.json()
 
 # Example usage
-coords = [
-    {"lat": 47.5, "lon": 9.5},
-    {"lat": 47.8, "lon": 9.8}
+track_points = [
+    {
+        "timestamp": "2024-08-15T10:23:45Z",
+        "lat": 47.5,
+        "lon": 9.5,
+        "gps_alt": 1523,
+        "segment_type": "glide",
+        "segment_id": 0
+    },
+    {
+        "timestamp": "2024-08-15T10:23:50Z",
+        "lat": 47.8,
+        "lon": 9.8,
+        "gps_alt": 1650,
+        "segment_type": "thermal",
+        "segment_id": 1
+    }
 ]
 
-result = get_elevations(coords)
-for coord in result["coordinates"]:
-    print(f"Lat: {coord['lat']}, Lon: {coord['lon']}, "
-          f"Elevation: {coord['ground_elevation']}m")
-```
-
-### Python with GeoJSON
-```python
-import requests
-
-# GeoJSON from xcmetrics
-geojson = {
-    "type": "FeatureCollection",
-    "features": [
-        {
-            "type": "Feature",
-            "geometry": {
-                "type": "LineString",
-                "coordinates": [[9.5, 47.5], [9.6, 47.6]]
-            },
-            "properties": {"name": "Track"}
-        }
-    ]
-}
-
-# Add elevations
-response = requests.post("http://localhost:8084/", json=geojson)
-enhanced_geojson = response.json()
-
-# Access elevations
-for feature in enhanced_geojson["features"]:
-    elevations = feature["properties"]["ground_elevation"]
-    print(f"Track elevations: {elevations}")
+result = get_terrain_elevations(track_points)
+for point in result["track_points"]:
+    print(f"Time: {point['timestamp']}, "
+          f"Lat: {point['lat']}, Lon: {point['lon']}, "
+          f"GPS Alt: {point.get('gps_alt', 'N/A')}m, "
+          f"Terrain Alt: {point['terrain_alt']}m")
 ```
 
 ### JavaScript/Node.js
 ```javascript
 const axios = require('axios');
 
-async function getElevations(coordinates) {
+async function getTerrainElevations(trackPoints) {
   const response = await axios.post('http://localhost:8084/', {
-    coordinates: coordinates
+    track_points: trackPoints
   });
   return response.data;
 }
 
 // Example
-const coords = [
-  { lat: 47.5, lon: 9.5 },
-  { lat: 47.8, lon: 9.8 }
+const trackPoints = [
+  {
+    timestamp: "2024-08-15T10:23:45Z",
+    lat: 47.5,
+    lon: 9.5,
+    gps_alt: 1523,
+    segment_type: "glide",
+    segment_id: 0
+  },
+  {
+    timestamp: "2024-08-15T10:23:50Z",
+    lat: 47.8,
+    lon: 9.8,
+    gps_alt: 1650,
+    segment_type: "thermal",
+    segment_id: 1
+  }
 ];
 
-getElevations(coords).then(result => {
-  result.coordinates.forEach(coord => {
-    console.log(`${coord.lat}, ${coord.lon}: ${coord.ground_elevation}m`);
+getTerrainElevations(trackPoints).then(result => {
+  result.track_points.forEach(point => {
+    console.log(`${point.timestamp}: ${point.lat}, ${point.lon} - Terrain: ${point.terrain_alt}m`);
   });
 });
 ```
@@ -384,32 +388,28 @@ with open('flight.igc', 'rb') as f:
     )
     xcmetrics_data = xcmetrics_response.json()
 
-# 2. Add ground elevation to glides
-glides = xcmetrics_data['glides']
+# 2. Add terrain elevation to track points
+track_points_data = {"track_points": xcmetrics_data['track_points']}
 dem_response = requests.post(
     'http://localhost:8084/',
-    json=glides
+    json=track_points_data
 )
-enhanced_glides = dem_response.json()
+enhanced_data = dem_response.json()
 
-# 3. Add ground elevation to thermals
-thermals = xcmetrics_data['thermals']
-dem_response = requests.post(
-    'http://localhost:8084/',
-    json=thermals
-)
-enhanced_thermals = dem_response.json()
-
-# Now you have elevation data for the entire flight
-print(f"Processed {len(enhanced_glides['features'])} glides")
-print(f"Processed {len(enhanced_thermals['features'])} thermals")
+# Now you have terrain elevation data for the entire flight
+print(f"Processed {len(enhanced_data['track_points'])} track points")
+for point in enhanced_data['track_points']:
+    terrain_clearance = None
+    if point.get('gps_alt') and point.get('terrain_alt'):
+        terrain_clearance = point['gps_alt'] - point['terrain_alt']
+    print(f"  {point['timestamp']}: Clearance = {terrain_clearance}m")
 ```
 
 ---
 
 ## Troubleshooting
 
-### Service Returns null Elevations
+### Service Returns null terrain_alt
 **Cause**: No tile available for the requested coordinates.
 
 **Solution**: 
@@ -446,7 +446,7 @@ print(f"Processed {len(enhanced_thermals['features'])} thermals")
    ```
 
 ### Slow Performance
-**Cause**: Many coordinates in different tiles.
+**Cause**: Many track points in different tiles.
 
 **Solution**: The service already optimizes by grouping coordinates by tile. For very large batches, consider:
 1. Splitting requests into smaller batches
@@ -457,7 +457,7 @@ print(f"Processed {len(enhanced_thermals['features'])} thermals")
 
 ## Performance Tips
 
-1. **Batch Coordinates**: Send multiple coordinates in one request rather than many single-coordinate requests
+1. **Batch Track Points**: Send multiple track points in one request rather than many single-point requests
 2. **Pre-download Tiles**: Download all needed tiles before production use
 3. **Use SSD Storage**: Store tiles on fast storage for better read performance
 4. **Mount as Read-Only**: Use `:ro` flag to prevent accidental modifications
