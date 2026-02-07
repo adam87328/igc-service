@@ -17,7 +17,7 @@ def main():
     
     # File paths
     testdata_dir = Path(__file__).parent / "testdata"
-    igc_file = testdata_dir / "valid_xctrack.igc"
+    igc_file = testdata_dir / "short_niedere.igc"
     
     print("=" * 70)
     print("Integration Test: xcmetrics → DEM Service")
