@@ -68,12 +68,9 @@ def track_analysis(input_file):
             detail=f"igc_lib: flight invalid: %s" % flight.notes)
 
     # combine and output
-    g_json = flight.glides_to_gdf().to_json() if flight.glides else "{}"
-    t_json = flight.thermals_to_gdf().to_json() if flight.thermals else "{}"
-
     return {
         "info"      : json.loads(flight.flight_summary()),
-        "glides"    : json.loads(g_json),
-        "thermals"  : json.loads(t_json),
+        "glides"    : json.loads(flight.glides_to_gdf()),
+        "thermals"  : json.loads(flight.thermals_to_gdf()),
         "timeseries": flight.timeseries()
          }

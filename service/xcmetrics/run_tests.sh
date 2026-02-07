@@ -22,8 +22,6 @@ sleep 4
 echo "Running test script..."
 python3 -m unittest tests/tests.py
 
-curl -F "file=@../../testdata/valid_xctrack.igc" http://127.0.0.1:8080/ > ../tests/response.json
-
 # After the test script finishes, shut down Uvicorn
 echo "Shutting down Uvicorn server..."
 kill $UVICORN_PID
