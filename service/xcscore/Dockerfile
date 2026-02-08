@@ -4,5 +4,21 @@ COPY ./requirements.txt /code/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 COPY ./app /code/app
 
+# Environment variables for production tuning
+ENV WORKERS=4
+ENV WORKER_CLASS=uvicorn.workers.UvicornWorker
+ENV WORKER_CONNECTIONS=1000
+ENV TIMEOUT=120
+
 EXPOSE 8083
-CMD ["fastapi", "run", "app/main.py", "--port", "8083"]
+
+# Production command with gunicorn (default)
+# For development, override with: fastapi run app/main.py --port 8083
+CMD gunicorn app.main:app \
+    --bind 0.0.0.0:8083 \
+    --workers ${WORKERS} \
+    --worker-class ${WORKER_CLASS} \
+    --worker-connections ${WORKER_CONNECTIONS} \
+    --timeout ${TIMEOUT} \
+    --access-logfile - \
+    --error-logfile -

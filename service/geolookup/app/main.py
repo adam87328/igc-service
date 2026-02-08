@@ -1,5 +1,12 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
+import sys
+import os
+
+# Add app directory to path for gunicorn compatibility
+app_dir = os.path.dirname(os.path.abspath(__file__))
+if app_dir not in sys.path:
+    sys.path.insert(0, app_dir)
 
 # offline DB of towns/cities, returns closest match
 from nearest_town import NearestTown

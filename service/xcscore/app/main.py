@@ -1,5 +1,12 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
+import sys
+import os
+
+# Add app directory to path for gunicorn compatibility
+app_dir = os.path.dirname(os.path.abspath(__file__))
+if app_dir not in sys.path:
+    sys.path.insert(0, app_dir)
 
 from igc_xc_score_wrapper import igc_xc_score
 

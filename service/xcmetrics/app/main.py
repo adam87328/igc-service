@@ -6,8 +6,12 @@ import os
 import tempfile
 import json
 
-sys.path.append(os.path.join(os.path.dirname(__file__), 'igc_lib'))
-from igc_lib import igc_lib
+# Add igc_lib to path - handle both direct run and gunicorn
+igc_lib_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'igc_lib')
+if igc_lib_path not in sys.path:
+    sys.path.insert(0, igc_lib_path)
+
+from igc_lib import Flight, FlightParsingConfig
 
 app = FastAPI()
 
@@ -54,12 +58,12 @@ def track_analysis(input_file):
 
     # igc_lib custom settings
     # todo: make igc_lib settings accessible through FastAPI
-    class igcLibCfg(igc_lib.FlightParsingConfig):
+    class igcLibCfg(FlightParsingConfig):
         min_time_for_bearing_change = 2.0
         min_time_for_thermal = 30
 
     # load via igc_lib
-    flight = igc_lib.Flight.create_from_file(input_file,igcLibCfg)
+    flight = Flight.create_from_file(input_file,igcLibCfg)
 
     # if flight invalid, return igc_lib debug info
     if not flight.valid:
