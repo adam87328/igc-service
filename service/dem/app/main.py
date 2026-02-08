@@ -4,6 +4,14 @@ from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import logging
 from contextlib import asynccontextmanager
+import sys
+import os
+
+# Add app directory to path for gunicorn compatibility
+app_dir = os.path.dirname(os.path.abspath(__file__))
+if app_dir not in sys.path:
+    sys.path.insert(0, app_dir)
+
 from copernicus_dem import CopernicusDEM
 from config import DEM_TILES_DIR
 
