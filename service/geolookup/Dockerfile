@@ -9,7 +9,6 @@ ENV WORKERS=4
 ENV WORKER_CLASS=uvicorn.workers.UvicornWorker
 ENV WORKER_CONNECTIONS=1000
 ENV TIMEOUT=120
-ENV KEEPALIVE=5
 
 EXPOSE 8082
 
@@ -21,6 +20,5 @@ CMD gunicorn app.main:app \
     --worker-class ${WORKER_CLASS} \
     --worker-connections ${WORKER_CONNECTIONS} \
     --timeout ${TIMEOUT} \
-    --keepalive ${KEEPALIVE} \
     --access-logfile - \
     --error-logfile -

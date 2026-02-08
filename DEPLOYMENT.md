@@ -51,9 +51,6 @@ WORKER_CONNECTIONS=1000
 # Increase for long-running IGC processing
 TIMEOUT=120
 
-# Keep-alive timeout in seconds (default: 5)
-KEEPALIVE=5
-
 # Log level (default: info)
 LOG_LEVEL=info
 ```
@@ -87,7 +84,6 @@ TIMEOUT=180
 WORKERS=6
 WORKER_CONNECTIONS=1500
 TIMEOUT=180
-KEEPALIVE=10
 ```
 
 ## Docker Deployment

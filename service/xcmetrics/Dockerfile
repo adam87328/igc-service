@@ -1,7 +1,11 @@
 FROM python:3.13
 WORKDIR /code
-COPY ./requirements.txt /code/requirements.txt
+
+# Copy app first to get igc_lib requirements
 COPY ./app /code/app
+COPY ./requirements.txt /code/requirements.txt
+
+# Install dependencies
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
 # Environment variables for production tuning
@@ -9,7 +13,6 @@ ENV WORKERS=4
 ENV WORKER_CLASS=uvicorn.workers.UvicornWorker
 ENV WORKER_CONNECTIONS=1000
 ENV TIMEOUT=120
-ENV KEEPALIVE=5
 
 EXPOSE 8081
 
@@ -21,6 +24,5 @@ CMD gunicorn app.main:app \
     --worker-class ${WORKER_CLASS} \
     --worker-connections ${WORKER_CONNECTIONS} \
     --timeout ${TIMEOUT} \
-    --keepalive ${KEEPALIVE} \
     --access-logfile - \
     --error-logfile -
