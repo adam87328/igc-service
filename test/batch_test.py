@@ -247,6 +247,44 @@ def print_statistics(results: List[Dict[str, Any]], service_name: str):
     print(f"{'='*70}")
 
 
+def test_xcscore_concurrent(tester: ServiceTester, igc_files: List[str], 
+                               concurrency: int) -> List[Dict[str, Any]]:
+    """Test xcscore with concurrent requests"""
+    
+    print(f"\nTesting xcscore with {concurrency} concurrent requests...")
+    print(f"Using {len(igc_files)} IGC file(s)")
+    
+    # Create work items (repeat files if needed)
+    work_items = []
+    while len(work_items) < concurrency:
+        work_items.extend(igc_files)
+    work_items = work_items[:concurrency]
+    
+    # Execute concurrently
+    results = []
+    start_time = time.time()
+    
+    with ThreadPoolExecutor(max_workers=concurrency) as executor:
+        futures = {executor.submit(tester.test_xcscore, file): file 
+                   for file in work_items}
+        
+        for i, future in enumerate(as_completed(futures), 1):
+            result = future.result()
+            results.append(result)
+            
+            # Progress indicator
+            if i % 10 == 0 or i == len(futures):
+                print(f"  Progress: {i}/{len(futures)} requests completed")
+    
+    total_time = time.time() - start_time
+    requests_per_sec = concurrency / total_time if total_time > 0 else 0
+    
+    print(f"\n  Total Time: {total_time:.2f}s")
+    print(f"  Throughput: {requests_per_sec:.2f} requests/second")
+    
+    return results
+
+
 def test_xcmetrics_concurrent(tester: ServiceTester, igc_files: List[str], 
                                concurrency: int) -> List[Dict[str, Any]]:
     """Test xcmetrics with concurrent requests"""
@@ -404,7 +442,7 @@ def main():
         igc_files = args.files
     else:
         # Look for test files
-        test_dir = Path(__file__).parent / 'test' / 'testdata'
+        test_dir = Path(__file__).parent / 'testdata'
         if test_dir.exists():
             igc_files = list(test_dir.glob('*.igc'))
         else:
@@ -444,7 +482,7 @@ def main():
             print_statistics(results, "geolookup")
         
         if args.service in ['all', 'xcscore']:
-            results = test_xcmetrics_concurrent(tester, igc_files, args.concurrency)
+            results = test_xcscore_concurrent(tester, igc_files, args.concurrency)
             print_statistics(results, "xcscore")
         
         print("\n✓ Batch testing completed successfully!\n")
